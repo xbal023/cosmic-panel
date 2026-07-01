@@ -22,6 +22,7 @@ pub fn background_element(
     logical_pos: [f32; 2],
     color: [f32; 4],
     scale: f64,
+    inner_glow: Option<cosmic_panel_config::InnerGlowConfig>,
 ) -> BackgroundElement {
     IcedElement::new(
         Background {
@@ -32,6 +33,7 @@ pub fn background_element(
             logical_pos: (logical_pos[0].round() as i32, logical_pos[1].round() as i32),
             color,
             scale,
+            inner_glow,
         },
         (logical_width, logical_height),
         loop_handle,
@@ -49,6 +51,7 @@ pub struct Background {
     pub logical_pos: (i32, i32),
     pub color: [f32; 4],
     pub scale: f64,
+    pub inner_glow: Option<cosmic_panel_config::InnerGlowConfig>,
 }
 
 impl Program for Background {
@@ -60,6 +63,8 @@ impl Program for Background {
         let radius_arr: [f32; 4] = self.radius;
 
         let color = self.color;
+        let glow_config = self.inner_glow.clone();
+        
         Element::from(
             cosmic::widget::container(space::horizontal().width(Length::Fixed(width)))
                 .width(Length::Fixed(width))
@@ -67,13 +72,27 @@ impl Program for Background {
                 .class(theme::Container::custom(move |theme| {
                     let cosmic = theme.cosmic();
 
+                    let (border_width, border_color) = if let Some(ref glow) = glow_config {
+                        if glow.animation_enabled {
+                            // Fallback rendering since GPU shaders aren't supported in tiny-skia.
+                            // We use the level to determine thickness and brightness to determine alpha.
+                            let thickness = glow.level * 8.0;
+                            let c = Color::from_rgba(glow.color[0], glow.color[1], glow.color[2], glow.brightness);
+                            (thickness, c)
+                        } else {
+                            (0.0, cosmic.background.divider.into())
+                        }
+                    } else {
+                        (0.0, cosmic.background.divider.into())
+                    };
+
                     cosmic::widget::container::Style {
                         text_color: Some(cosmic.background.on.into()),
                         background: Some(Color::from(color).into()),
                         border: cosmic::iced::Border {
                             radius: radius_arr.into(),
-                            width: 0.,
-                            color: cosmic.background.divider.into(),
+                            width: border_width,
+                            color: border_color,
                         },
                         shadow: Shadow::default(),
                         snap: true,

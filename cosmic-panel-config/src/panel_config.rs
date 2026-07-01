@@ -364,6 +364,35 @@ impl From<CosmicPanelOuput> for WrapperOutput {
 
 #[cfg(feature = "wayland-rs")]
 // TODO refactor to have separate dock mode config & panel mode config
+
+/// Config for the inner glow effect
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct InnerGlowConfig {
+    /// Brightness of the glow (0.0 to 1.0)
+    pub brightness: f32,
+    /// Level/intensity of the inner glow (0.0 to 1.0)
+    pub level: f32,
+    /// Animation time in milliseconds
+    pub animation_time_ms: u32,
+    /// Enable animation
+    pub animation_enabled: bool,
+    /// Custom RGB color [R, G, B] where each value is 0.0 to 1.0
+    pub color: [f32; 3],
+}
+
+impl Default for InnerGlowConfig {
+    fn default() -> Self {
+        Self {
+            brightness: 1.0,
+            level: 0.5,
+            animation_time_ms: 4000,
+            animation_enabled: true,
+            color: [0.5, 0.8, 1.0], // Default light blue
+        }
+    }
+}
+
 /// Config structure for the cosmic panel
 #[derive(Debug, Deserialize, Serialize, Clone, CosmicConfigEntry)]
 #[version = 1]
@@ -416,6 +445,8 @@ pub struct CosmicPanelConfig {
     pub autohover_delay_ms: Option<u32>,
     /// padding overlap ratio
     pub padding_overlap: f32,
+    /// inner glow configuration
+    pub inner_glow: Option<InnerGlowConfig>,
 }
 
 impl PartialEq for CosmicPanelConfig {
@@ -441,6 +472,7 @@ impl PartialEq for CosmicPanelConfig {
             && self.margin == other.margin
             && self.size_center == other.size_center
             && self.size_wings == other.size_wings
+            && self.inner_glow == other.inner_glow
             && (self.opacity - other.opacity).abs() < 0.01
     }
 }
@@ -471,6 +503,7 @@ impl Default for CosmicPanelConfig {
             opacity: 0.8,
             autohover_delay_ms: Some(500),
             padding_overlap: 0.5,
+            inner_glow: None,
         }
     }
 }
